@@ -1,0 +1,399 @@
+Parameters:
+  EnvironmentName:
+    Description: Please enter the VPC name that you are creating
+    Type: String
+    Default: Utpal VPC
+  VpcCIDR:
+    Description: Please enter the IP range for this VPC
+    Type: String
+    Default: 172.31.0.0/16
+  PublicSubnet1CIDR:
+    Description: Please enter the IP range for the public subnet in the first Availability Zone
+    Type: String
+    Default: 172.31.1.0/24
+  PublicSubnet2CIDR:
+    Description: Please enter the IP range for the public subnet in the first Availability Zone
+    Type: String
+    Default: 172.31.2.0/24
+  PublicSubnet3CIDR:
+    Description: Please enter the IP range for the public subnet in the first Availability Zone
+    Type: String
+    Default: 172.31.3.0/24
+  PublicSubnet4CIDR:
+    Description: Please enter the IP range for the public subnet in the first Availability Zone
+    Type: String
+    Default: 172.31.4.0/24
+  PublicSubnet1Zone:
+    Description: Select Avalability Zone for PublicSubnet1
+    Type: String
+    Default: us-east-2a
+    AllowedValues:
+      - us-east-2a 
+      - us-east-2b
+      - us-east-2c
+  PublicSubnet2Zone:
+    Description: Select Avalability Zone for PublicSubnet2
+    Type: String
+    Default: us-east-2b
+    AllowedValues:
+      - us-east-2a 
+      - us-east-2b
+      - us-east-2c
+  PublicSubnet3Zone:
+    Description: Select Avalability Zone for PublicSubnet3
+    Type: String
+    Default: us-east-2c
+    AllowedValues:
+      - us-east-2a 
+      - us-east-2b
+      - us-east-2c
+  PublicSubnet4Zone:
+    Description: Select Avalability Zone for PublicSubnet4
+    Type: String
+    Default: us-east-2c
+    AllowedValues:
+      - us-east-2a 
+      - us-east-2b
+      - us-east-2c
+  PrivateSubnet1CIDR:
+    Description: Please enter the IP range for the private subnet in the first Availability Zone
+    Type: String
+    Default: 172.31.5.0/24
+  PrivateSubnet2CIDR:
+    Description: Please enter the IP range for the private subnet in the first Availability Zone
+    Type: String
+    Default: 172.31.6.0/24
+  PrivateSubnet3CIDR:
+    Description: Please enter the IP range for the private subnet in the first Availability Zone
+    Type: String
+    Default: 172.31.7.0/24
+  PrivateSubnet4CIDR:
+    Description: Please enter the IP range for the private subnet in the first Availability Zone
+    Type: String
+    Default: 172.31.8.0/24
+  PrivateSubnet1Zone:
+    Description: Select Avalability Zone for PrivateSubnet1
+    Type: String
+    Default: us-east-2a
+    AllowedValues:
+      - us-east-2a 
+      - us-east-2b
+      - us-east-2c
+  PrivateSubnet2Zone:
+    Description: Select Avalability Zone for PrivateSubnet2
+    Type: String
+    Default: us-east-2b
+    AllowedValues:
+      - us-east-2a 
+      - us-east-2b
+      - us-east-2c
+  PrivateSubnet3Zone:
+    Description: Select Avalability Zone for PrivateSubnet3
+    Type: String
+    Default: us-east-2c
+    AllowedValues:
+      - us-east-2a 
+      - us-east-2b
+      - us-east-2c
+  PrivateSubnet4Zone:
+    Description: Select Avalability Zone for PrivateSubnet4
+    Type: String
+    Default: us-east-2c
+    AllowedValues:
+      - us-east-2a 
+      - us-east-2b
+      - us-east-2c
+
+  BastionKey:
+    Description: Name of an existing EC2 KeyPair to enable access to the instance
+    Default: utpal-key
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair
+  BastionType:
+    Description: Bastion Machine Type
+    Type: String
+    Default: t2.small
+    AllowedValues:
+    - t2.small
+    - t2.medium
+    - t2.large
+    - m4.2xlarge
+    - m5.large
+    - m5.xlarge
+    ConstraintDescription: must be a valid EC2 instance type
+
+Resources:
+
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Utpal IGW
+        - Key: Network
+          Value: Public
+  GatewayToInternet:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  
+  #Public Subnet Creation
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref PublicSubnet1Zone 
+      CidrBlock: !Ref PublicSubnet1CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Utpal Public Subnet-1
+        - Key: Zone
+          Value: !Ref PublicSubnet1Zone
+  PublicSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref PublicSubnet2Zone 
+      CidrBlock: !Ref PublicSubnet2CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Utpal Public Subnet-2
+        - Key: Zone
+          Value: !Ref PublicSubnet2Zone
+  PublicSubnet3:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref PublicSubnet3Zone 
+      CidrBlock: !Ref PublicSubnet3CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Utpal Public Subnet-3
+        - Key: Zone
+          Value: !Ref PublicSubnet3Zone
+  PublicSubnet4:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref PublicSubnet4Zone 
+      CidrBlock: !Ref PublicSubnet4CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Utpal Public Subnet-4
+        - Key: Zone
+          Value: !Ref PublicSubnet4Zone
+  
+  #Private Subnet Creation  
+  PrivateSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref PrivateSubnet1Zone
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Utpal Private Subnet-1
+        - Key: Zone
+          Value: !Ref PrivateSubnet1Zone
+  PrivateSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref PrivateSubnet2Zone
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Utpal Private Subnet-2
+        - Key: Zone
+          Value: !Ref PrivateSubnet2Zone
+  PrivateSubnet3:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref PrivateSubnet3Zone
+      CidrBlock: !Ref PrivateSubnet3CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Utpal Private Subnet-3
+        - Key: Zone
+          Value: !Ref PrivateSubnet3Zone
+  PrivateSubnet4:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref PrivateSubnet4Zone
+      CidrBlock: !Ref PrivateSubnet4CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Utpal Private Subnet-4
+        - Key: Zone
+          Value: !Ref PrivateSubnet4Zone
+
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Utpal Public Routes
+        - Key: Network
+          Value: Public
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: GatewayToInternet
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet3RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet3
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet4RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet4
+      RouteTableId: !Ref PublicRouteTable
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    DependsOn: NatPublicIP
+    Properties:
+      AllocationId: !GetAtt NatPublicIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+  NatPublicIP:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: VPC
+    Properties:
+      Domain: vpc
+
+  PrivateRouteTable: 
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Utpal Private Route
+        - Key: Network
+          Value: Private
+  PrivateRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnet3RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet3
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnet4RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet4
+      RouteTableId: !Ref PrivateRouteTable
+
+      #  EC2INSTANCE:
+      #Type: 'AWS::EC2::Instance'
+      #DependsOn: PublicSubnet1
+      #Properties:
+      #InstanceType: !Ref BastionType
+      #KeyName: !Ref BastionKey
+      #ImageId: ami-0bbe28eb2173f6167
+      #SubnetId: !Ref PublicSubnet1
+      #Tags:
+      #  - Key: Name
+      #    Value: EC2Test01
+      #  - Key: Environment
+      #    Value: TEST
+
+Outputs:
+
+    VPC:
+      Description: A reference to the created VPC
+      Value: !Ref VPC
+      Export:
+        Name: VPC
+
+    PublicSubnets1:
+      Description: This is the first public subnets
+      Value: !Ref PublicSubnet1
+      Export:
+        Name: PublicSubnet1
+    PublicSubnets2:
+      Description: This is the second public subnets
+      Value: !Ref PublicSubnet2
+      Export:
+        Name: PublicSubnet2
+    PublicSubnets3:
+      Description: This is the third public subnets
+      Value: !Ref PublicSubnet3
+      Export:
+        Name: PublicSubnet3
+    PublicSubnets4:
+      Description: This is the fourth public subnets
+      Value: !Ref PublicSubnet4
+      Export:
+        Name: PublicSubnet4
+
+    PrivateSubnets1:
+      Description: This is the first private subnets
+      Value: !Ref PrivateSubnet1
+      Export:
+        Name: PrivateSubnet1
+    PrivateSubnets2:
+      Description: This is the second private subnets
+      Value: !Ref PrivateSubnet2
+      Export:
+        Name: PrivateSubnet2
+    PrivateSubnets3:
+      Description: This is the third private subnets
+      Value: !Ref PrivateSubnet3
+      Export:
+        Name: PrivateSubnet3
+    PrivateSubnets4:
+      Description: This is the fourth private subnets
+      Value: !Ref PrivateSubnet4
+      Export:
+        Name: PrivateSubnet4
+
+

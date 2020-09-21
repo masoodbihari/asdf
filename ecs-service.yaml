@@ -1,0 +1,167 @@
+Parameters:
+  HealthCheckPath:
+     Type: String
+     Default: /
+     Description: Enter Health Check Path
+  TargetGroupName:
+     Type: String
+     Default: UtpalTG
+     Description: Enter your TargetGroup Name
+  ContainerName:
+     Type: String
+     Default: UtpalApp
+     Description: Enter your Application Name
+  Cpu:
+     Type: Number
+     Default: 256
+     AllowedValues:
+     - 256
+     - 512
+     - 1024
+     - 2048
+     - 4096
+     Description: Enter required CPU
+  Memory:
+     Type: Number
+     Default: 512
+     AllowedValues:
+     - 512
+     - 1024
+     - 2048
+     - 3072
+     - 4096
+     Description: Memory should be double the size of cpu 
+  AppContainerPort:
+     Type: Number
+     Default: 80
+     Description: Enter App Port
+  AppHostPort:
+     Type: Number
+     Default: 80
+     Description: Enter App Host Port
+  ImageName:
+     Type: String
+     Default: nginx:latest
+     Description: Enter Image Name with tag
+Resources:
+  ECSTaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties: 
+      Family: !Ref ContainerName
+      Cpu: !Ref Cpu
+      Memory: !Ref Memory
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !ImportValue ExecutionRole
+      ContainerDefinitions: 
+      - Name: !Ref ContainerName
+        Image: !Ref ImageName
+        Essential: true
+        #Command:
+        # - "/bin/sh -c ls"
+            #- "/bin/sh -c echo \"<body style='text-align:center'><h1 style='font-size:70px;'>Welcome to Utpal's Bastion</h1></body>\" > /var/www/html/index.html"
+        LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !ImportValue LogGroup
+              awslogs-stream-prefix: ecs
+        PortMappings: 
+        - ContainerPort: !Ref AppContainerPort
+          HostPort: !Ref AppHostPort
+      RequiresCompatibilities:
+        - FARGATE
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: !Ref HealthCheckPath
+      HealthCheckTimeoutSeconds: 5
+      UnhealthyThresholdCount: 2
+      HealthyThresholdCount: 2
+      Name: !Ref TargetGroupName
+      Port: !Ref AppContainerPort
+      Protocol: HTTP
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 60
+      TargetType: ip
+      VpcId: !ImportValue VPC
+  HTTPlistener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !ImportValue ELB
+      Port: 443
+      Protocol: "HTTPS"
+      Certificates:
+        - CertificateArn: !ImportValue mycert
+    DependsOn: TargetGroup
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - HTTPlistener
+      - ECSTaskDef
+      - ServiceSecurityGroup
+    Properties:
+      Cluster: !ImportValue Cluster
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: 1
+      NetworkConfiguration: 
+        AwsvpcConfiguration:
+          # change to DISABLED if you're using private subnets that have access to a NAT gateway
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !ImportValue PrivateSubnet1
+            - !ImportValue PrivateSubnet2
+          SecurityGroups:
+            - !Ref ServiceSecurityGroup
+      HealthCheckGracePeriodSeconds: 20
+      LoadBalancers:
+        - ContainerName: !Ref ContainerName
+          ContainerPort: !Ref AppContainerPort
+          TargetGroupArn: !Ref TargetGroup
+      TaskDefinition: !Ref ECSTaskDef
+      ServiceName: !Ref ContainerName
+  ServiceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId: !ImportValue VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        SourceSecurityGroupId: !ImportValue ELBSecurityGroupId
+    # ListenerCertificate:
+    #Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
+    #DependsOn: HTTPlistener
+    # Properties: 
+    #Certificates: 
+    #- Certificate : !ImportValue mycert
+    #  ListenerArn: !Ref HTTPlistener
+Outputs:
+ Service:
+  Value: !Ref Service
+  Export:
+    Name: Service
+ HTTPlistener:
+  Value: !Ref HTTPlistener
+  Export:
+    Name: HTTPlistener
+ TargetGroup:
+  Value: !Ref TargetGroup
+  Export:
+    Name: TargetGroup
+ ECSTaskDef:
+   Value: !Ref ECSTaskDef
+   Export: 
+    Name: ECSTaskDef
+ ServiceSecurityGroup:
+   Value: !Ref ServiceSecurityGroup
+   Export:
+    Name: ServiceSecurityGroup

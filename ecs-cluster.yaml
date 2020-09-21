@@ -1,0 +1,129 @@
+Parameters:
+  ClusterName:
+     Type: String
+     Default: UtpalCluster
+     Description: Enter your cluster name
+  Port:
+     Type: Number
+     Default: 80
+     Description: Port of your application
+  LoadBalancerName:
+     Type: String
+     Default: UtpalLB
+     Description: Enter name of your Load Balancer
+  PublicIp:
+     Type: String
+     Default: 0.0.0.0/0
+     Description: Enter IP
+  DomainName:
+    Type: String
+    Default: glda.gl-poc.com
+    Description: Enter domain name
+  SubDomainName:
+    Type: String 
+    Description: Enter subdomain name
+  Email:
+    Type: String
+    Default: utpal.brahma@globallogic.com
+    Description: Enter Validation email
+Resources:
+  Cluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: !Ref ClusterName
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: deployment-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: deployment-log-group
+  ELB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Name: !Ref LoadBalancerName
+      Subnets: 
+       - !ImportValue PublicSubnet1 
+       - !ImportValue PublicSubnet2
+       - !ImportValue PublicSubnet3
+      SecurityGroups:
+       - !Ref ELBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: UtpalALB
+  mycert:
+    Type: AWS::CertificateManager::Certificate
+    DependsOn: DNSRecord
+    Properties:
+      DomainName: !Sub "${SubDomainName}.${DomainName}"
+      DomainValidationOptions:
+        - DomainName: !Sub "${SubDomainName}.${DomainName}"
+          HostedZoneId: Z07589203SDSVQJ9QM9XR 
+      ValidationMethod: DNS
+  ELBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId: !ImportValue VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: !Ref Port
+        ToPort: !Ref Port
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: UtpalALB-SecurityGroup
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: ELB
+    Properties:
+      HostedZoneName: !Sub '${DomainName}.'
+      Name: !Sub '${SubDomainName}.${DomainName}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ELB.DNSName
+        HostedZoneId: !GetAtt ELB.CanonicalHostedZoneID
+
+Outputs:
+  Cluster: 
+   Value: !Ref Cluster
+   Export:
+     Name: Cluster
+  ExecutionRole:
+   Value: !Ref ExecutionRole
+   Export: 
+    Name: ExecutionRole
+  LogGroup:
+   Value: !Ref LogGroup
+   Export:
+    Name: LogGroup
+  ELB:
+   Value: !Ref ELB
+   Export:
+    Name: ELB
+  mycert:
+    Value: !Ref mycert
+    Export:
+      Name: mycert
+  ELBSecurityGroup:
+   Value: !Ref ELBSecurityGroup
+   Export:
+    Name: ELBSecurityGroup
+  ELBSecurityGroupId:
+   Value: !GetAtt ELBSecurityGroup.GroupId
+   Export:
+    Name: ELBSecurityGroupId

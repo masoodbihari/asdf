@@ -1,0 +1,86 @@
+Parameters:
+  DomainName:
+    Description: Enter the hosted zone name
+    Default: glda.gl-poc.com
+    Type: String
+  SubDomainName:
+    Description: Enter the subdomain name
+    Type: String
+  Subnet: 
+    Description: Enter the Public Subnet that Bastion will join.
+    Type: String
+    Default: PublicSubnet1
+    AllowedValues:
+      - PublicSubnet1
+      - PublicSubnet2
+      - PublicSubnet3
+      - PublicSubnet4
+  BastionMachineType:
+    Description: Enter the machine type for bastion
+    Type: String
+    Default: t2.small
+    AllowedValues:
+    - t2.small
+    - t2.medium
+    - t2.large
+    - m4.2xlarge
+    - m5.large
+    - m5.xlarge
+    ConstraintDescription: must be a valid EC2 instance type
+  BastionKey:
+    Description: Key pair Name
+    Default: utpal-key
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+
+Resources:
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: 
+        Fn::ImportValue: VPC
+      GroupDescription: Allow access from outsite cloud.
+      SecurityGroupIngress:
+        # Allow access from anywhere to our ECS services
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: -1
+        - CidrIp: 0.0.0.0/0 
+          IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+      Tags:
+        - Key: Name
+          Value: BastionSecurity
+  Bastion:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: BastionSecurityGroup
+    Properties:
+      InstanceType: !Ref BastionMachineType
+      KeyName: !Ref BastionKey
+      ImageId: ami-0bbe28eb2173f6167
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            sudo apt update
+            sudo apt install apache2 -y
+            echo "<body style='text-align:center'><h1 style='font-size:70px;'>Welcome to Utpal's Bastion</h1></body>" > /var/www/html/index.html
+            #echo "Hello" > /var/www/html/index.html
+      SubnetId: 
+        Fn::ImportValue:
+          !Sub ${Subnet}
+      SecurityGroupIds: 
+        - !GetAtt "BastionSecurityGroup.GroupId"
+      Tags:
+        - Key: Name
+          Value: Bastion
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: Bastion
+    Properties:
+      HostedZoneName: !Sub '${DomainName}.'
+      Name: !Sub '${SubDomainName}.${DomainName}.'
+      ResourceRecords:
+      - !GetAtt "Bastion.PublicIp"
+      TTL: '900'
+      Type: A
